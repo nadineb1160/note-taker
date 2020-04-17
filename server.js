@@ -82,11 +82,11 @@ app.delete("/api/notes/:id", function (req, res) {
     console.log(chosenNoteId);
 
     // Map Notes without chosen ID
-    let newNotes = notes.filter(note => chosenNoteId === parseInt(note.id));
+    let newNotes = notes.filter(note => chosenNoteId !== parseInt(note.id));
 
     console.log(newNotes);
     // Remove Note
-    
+    notes = newNotes;
 
     // Write Updated Notes to DB
     writeDB();
