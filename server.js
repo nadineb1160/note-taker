@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
+const uuid = require("uuid/v1");
 
 var app = express();
 var PORT = process.env.PORT || 3000;
@@ -39,10 +40,10 @@ app.get("/api/notes", function (req, res) {
 // Displays One Note - Used to get data when note is clicked
 app.get("/api/notes/:id", function (req, res) {
     // Chosen Note ID 
-    var chosenNoteId = parseInt(req.params.id);
+    var chosenNoteId = req.params.id;
 
     // Filter Notes with chosen ID
-    let foundNoteWithID = notes.filter(note => chosenNoteId === parseInt(note.id));
+    let foundNoteWithID = notes.filter(note => chosenNoteId === note.id);
 
     console.log(foundNoteWithID);
 
@@ -53,14 +54,14 @@ app.get("/api/notes/:id", function (req, res) {
 });
 
 // Create New Note - takes in JSON input
-app.post("/api/notes/new", function (req, res) {
+app.post("/api/notes", function (req, res) {
     // req.body equal to JSON post sent from the user
     var newNote = req.body;
 
     console.log(notes);
 
     // Add new id for note
-    newNote.id = notes.length + 1;
+    newNote.id = uuid();
 
     console.log("New Note: ", newNote);
 
@@ -71,25 +72,29 @@ app.post("/api/notes/new", function (req, res) {
     // Write Updated Notes to DB
     writeDB();
 
-    return res.json(newNote);
+    // return 
+    res.json(newNote);
 });
 
 // Delete Note with Unique ID
 app.delete("/api/notes/:id", function (req, res) {
     // Chosen Note ID 
-    var chosenNoteId = parseInt(req.params.id);
+    var chosenNoteId = req.params.id;
 
     console.log(chosenNoteId);
 
     // Map Notes without chosen ID
-    let newNotes = notes.filter(note => chosenNoteId !== parseInt(note.id));
+    let newNotes = notes.filter(note => chosenNoteId !== note.id);
 
     console.log(newNotes);
     // Remove Note
     notes = newNotes;
 
-    // Write Updated Notes to DB
-    writeDB();
+    fs.writeFile("db/db.json", JSON.stringify(notes), (err) => {
+        if (err) throw err;
+        console.log("The file has been saved!");
+        res.json({okay: true});
+    });
 });
 
 function writeDB() {
