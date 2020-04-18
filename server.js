@@ -1,7 +1,8 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
-const uuid = require("uuid/v1");
+// Note ID - Timestamp(v1)
+const { v1: uuidv1 } = require('uuid'); 
 
 var app = express();
 var PORT = process.env.PORT || 3000;
@@ -10,99 +11,119 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(__dirname + "/public"));
 
+// Initialize Local Notes - DB
 var notes = [];
 
-// Route that sends the user to index.html
+
+// **************************
+// ****** Basic Routes ******
+// **************************
+
+/* index.html Route */
 app.get("/", function (req, res) {
     res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
-// Route that sends the user to notes.html
+
+/* notes.html Route */
 app.get("/notes", function (req, res) {
     res.sendFile(path.join(__dirname, "public/notes.html"));
 });
 
-// Displays all notes
+
+// **************************
+// ******* API Routes *******
+// **************************
+
+// Display All Notes
 app.get("/api/notes", function (req, res) {
+
     // Read notes from DB
     fs.readFile("db/db.json", function (err, result) {
+
         if (err) throw err;
+
         // All Notes from DB
         let dbResult = JSON.parse(result);
+
         // Update Notes with DB Results
         notes = dbResult;
 
-        // Return the DB Results ad JSON
+        // Return the DB Results as JSON
         return res.json(dbResult);
     });
 });
 
-// Displays One Note - Used to get data when note is clicked
+
+// Display One Note
 app.get("/api/notes/:id", function (req, res) {
+
     // Chosen Note ID 
     var chosenNoteId = req.params.id;
 
     // Filter Notes with chosen ID
     let foundNoteWithID = notes.filter(note => chosenNoteId === note.id);
 
-    console.log(foundNoteWithID);
-
-    // Returns note object with ID or [] if not found
+    // Returns Note Object with ID or [] if not found
     return res.json(foundNoteWithID);
-
-
+    
 });
 
-// Create New Note - takes in JSON input
+
+// **************************
+// ******* Create Note ******
+// **************************
+
 app.post("/api/notes", function (req, res) {
+
     // req.body equal to JSON post sent from the user
     var newNote = req.body;
 
-    console.log(notes);
+    // Add New ID for Note - Timestamp
+    newNote.id = uuidv1();
 
-    // Add new id for note
-    newNote.id = uuid();
-
-    console.log("New Note: ", newNote);
-
+    // Add New Note to Local DB
     notes.push(newNote);
-
-    console.log("Notes", notes);
 
     // Write Updated Notes to DB
     writeDB();
 
-    // return 
     res.json(newNote);
 });
 
-// Delete Note with Unique ID
+
+// **************************
+// ******* Delete Note ******
+// **************************
+
 app.delete("/api/notes/:id", function (req, res) {
+
     // Chosen Note ID 
     var chosenNoteId = req.params.id;
 
-    console.log(chosenNoteId);
-
-    // Map Notes without chosen ID
+    // Map Notes without Chosen ID
     let newNotes = notes.filter(note => chosenNoteId !== note.id);
 
-    console.log(newNotes);
-    // Remove Note
+    // Update Notes with Note Removed
     notes = newNotes;
 
+    // Write to DB
     fs.writeFile("db/db.json", JSON.stringify(notes), (err) => {
+
         if (err) throw err;
-        console.log("The file has been saved!");
-        res.json({okay: true});
+    
+        // Complete write file
+        res.json({okay: true}); // status 200 is default
     });
 });
+
 
 function writeDB() {
     fs.writeFile("db/db.json", JSON.stringify(notes), (err) => {
         if (err) throw err;
-        console.log("The file has been saved!");
     });
 }
+
 
 // Starts the server to begin listening
 app.listen(PORT, function () {
